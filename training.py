@@ -93,9 +93,7 @@ def loss_fn(pred, y):
     loss = loss1+loss2
     return loss
 
-def train_one_epoch(net, optimizer, dataloader):
-    net.train()
-    
+
 
 '''
 Define training loop
@@ -115,69 +113,91 @@ def train_loop(dataloader, model, loss_fn, optimizer):
             loss, current = loss.item(), batch*len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
+"""
+Define test loop
+"""
+def test_loop(dataloader, model, loss_fn):
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    test_loss, correct = 0, 0
 
+    with torch.no_grad():
+        for X, y in dataloader:
+            pred = model(X)
+            test_loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
 
+    test_loss /= num_batches
+    correct /= size
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
-#Loss Function
-## TODO: change loss function
-loss = torch.nn.L1Loss(size_average=None, reduce=None, reduction='none')
-metrics = [
-    smp.utils.metrics.IoU(threshold=0.5),
-]
+epochs = 10
+for t in range(epochs):
+    print(f"Epoch {t+1}\n-------------------------------")
+    train_loop(train_loader, model, loss_fn, optimizer)
+    test_loop(test_loader, model, loss_fn)
+print("Done!")
 
-optimizer = torch.optim.Adam([ 
-    dict(params=model.parameters(), lr=0.0001),
-])
+# #Loss Function
+# ## TODO: change loss function
+# loss = torch.nn.L1Loss(size_average=None, reduce=None, reduction='none')
+# metrics = [
+#     smp.utils.metrics.IoU(threshold=0.5),
+# ]
 
-#create epoch runners
-train_epoch = smp.utils.train.TrainEpoch(
-    model, 
-    loss=loss, 
-    metrics=metrics, 
-    optimizer=optimizer,
-    device=DEVICE,
-    verbose=True,
-)
+# optimizer = torch.optim.Adam([ 
+#     dict(params=model.parameters(), lr=0.0001),
+# ])
 
-valid_epoch = smp.utils.train.ValidEpoch(
-    model, 
-    loss=loss, 
-    metrics=metrics, 
-    device=DEVICE, 
-    verbose=True,
-)
+# #create epoch runners
+# train_epoch = smp.utils.train.TrainEpoch(
+#     model, 
+#     loss=loss, 
+#     metrics=metrics, 
+#     optimizer=optimizer,
+#     device=DEVICE,
+#     verbose=True,
+# )
 
-#train model for 40 epochs
-max_score = 0
+# valid_epoch = smp.utils.train.ValidEpoch(
+#     model, 
+#     loss=loss, 
+#     metrics=metrics, 
+#     device=DEVICE, 
+#     verbose=True,
+# )
 
-for i in range(0, 40):
+# #train model for 40 epochs
+# max_score = 0
+
+# for i in range(0, 40):
     
-    print('\nEpoch: {}'.format(i))
-    train_logs = train_epoch.run(train_loader)
-    valid_logs = valid_epoch.run(valid_loader)
+#     print('\nEpoch: {}'.format(i))
+#     train_logs = train_epoch.run(train_loader)
+#     valid_logs = valid_epoch.run(valid_loader)
     
-    # do something (save model, change lr, etc.)
-    if max_score < valid_logs['iou_score']:
-        max_score = valid_logs['iou_score']
-        torch.save(model, './best_model.pth')
-        print('Model saved!')
+#     # do something (save model, change lr, etc.)
+#     if max_score < valid_logs['iou_score']:
+#         max_score = valid_logs['iou_score']
+#         torch.save(model, './best_model.pth')
+#         print('Model saved!')
         
-    if i == 25:
-        optimizer.param_groups[0]['lr'] = 1e-5
-        print('Decrease decoder learning rate to 1e-5!')
+#     if i == 25:
+#         optimizer.param_groups[0]['lr'] = 1e-5
+#         print('Decrease decoder learning rate to 1e-5!')
         
-### Test best saved model
-# load best saved checkpoint
-best_model = torch.load('./best_model.pth')
+# ### Test best saved model
+# # load best saved checkpoint
+# best_model = torch.load('./best_model.pth')
 
 
 
-# create test dataset
-test_dataset = Dataset(
-    x_test_dir, 
-    y_test_dir, 
-)
+# # create test dataset
+# test_dataset = Dataset(
+#     x_test_dir, 
+#     y_test_dir, 
+# )
 
-test_dataloader = DataLoader(test_dataset)
+# test_dataloader = DataLoader(test_dataset)
 
 
