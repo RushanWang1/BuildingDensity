@@ -77,9 +77,25 @@ valid_dataset = Dataset(
 
 train_loader = DataLoader(train_dataset, batch_size = 8, shuffle = True, num_workers = 8)
 valid_loader = DataLoader(valid_dataset, batch_size = 1, shuffle = False, num_workers = 4)
+optimizer = torch.optim.Adam([ 
+    dict(params=model.parameters(), lr=0.0001),
+])
+
+# TODO: Loss function
+loss = torch.nn.L1Loss(size_average=None, reduce=None, reduction='none')
+loss_mean = torch.nn.L1Loss(size_average=None, reduce=None, reduction='mean')
 
 def loss_fn(pred, y):
     err = pred-y
+    loss1 = err[0].mean()
+    mask = y[0]>0
+    loss2 = err[1][mask].mean()
+    loss = loss1+loss2
+    return loss
+
+def train_one_epoch(net, optimizer, dataloader):
+    net.train()
+    
 
 '''
 Define training loop
