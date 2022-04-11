@@ -10,7 +10,8 @@ from ctypes import util
 from sched import scheduler
 import cv2
 import matplotlib.pyplot as plt
-from dataset import Dataset 
+from buildingdataset import BuildingDataset 
+from unet import UNet
 import os
 
 import rasterio
@@ -44,7 +45,7 @@ model = smp.FPN(
     encoder_name = ENCODER,
     encoder_weights = ENCODER_WEIGHTS,
     in_channels = 4,
-    classes = 2,
+    classes = 1,
     activation = ACTIVATION,
 )
 
@@ -62,21 +63,28 @@ y_test_dir = "data/y_test/Kivuwest.tif"
 # x_test_dir = "data/x_test"
 # y_test_dir = "data/y_test"
 
-train_dataset = Dataset(
+train_dataset = BuildingDataset(
     x_train_dir,
     y_train_dir,
     #augmentation=get_training_augmentation(), 
 )
 
-valid_dataset = Dataset(
+valid_dataset = BuildingDataset(
     x_valid_dir, 
     y_valid_dir, 
     #augmentation=get_validation_augmentation(),
 )
 
+test_dataset = BuildingDataset(
+    x_test_dir, 
+    y_test_dir, 
+    #augmentation=get_validation_augmentation(),
+)
 
-train_loader = DataLoader(train_dataset, batch_size = 8, shuffle = True, num_workers = 8)
+
+train_loader = DataLoader(train_dataset, batch_size = 8, shuffle = True, num_workers = 12)
 valid_loader = DataLoader(valid_dataset, batch_size = 1, shuffle = False, num_workers = 4)
+test_loader = DataLoader(test_dataset, batch_size = 1, shuffle = False, num_workers = 4)
 optimizer = torch.optim.Adam([ 
     dict(params=model.parameters(), lr=0.0001),
 ])
@@ -98,13 +106,30 @@ def loss_fn(pred, y):
 '''
 Define training loop
 '''
+# def train_loop(dataloader, model, loss_fn, optimizer):
+#     size = len(dataloader.dataset)
+#     for batch, X, y in enumerate(dataloader):
+#         # Compute prediction and loss
+#         pred = model(X)
+#         loss = loss_fn(pred,y)
+#         # Backpropagation
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
+
+#         if batch%100 == 0:
+#             loss, current = loss.item(), batch*len(X)
+#             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
-    for batch, (X, y) in enumerate(dataloader):
+    batch = 0
+    for X, y in dataloader:
         # Compute prediction and loss
-        pred = model(X)
+        # pred = model(X)
+        pred = UNet(X)
         loss = loss_fn(pred,y)
-        #Backpropagation
+        # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -112,6 +137,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         if batch%100 == 0:
             loss, current = loss.item(), batch*len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+        batch += 1
 
 """
 Define test loop
