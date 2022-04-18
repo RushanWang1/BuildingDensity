@@ -82,7 +82,7 @@ test_dataset = BuildingDataset(
 )
 
 
-train_loader = DataLoader(train_dataset, batch_size = 8, shuffle = True, num_workers = 12)
+train_loader = DataLoader(train_dataset, batch_size = 8, shuffle = False, num_workers = 12)
 valid_loader = DataLoader(valid_dataset, batch_size = 1, shuffle = False, num_workers = 4)
 test_loader = DataLoader(test_dataset, batch_size = 1, shuffle = False, num_workers = 4)
 optimizer = torch.optim.Adam([ 
@@ -106,28 +106,13 @@ def loss_fn(pred, y):
 '''
 Define training loop
 '''
-# def train_loop(dataloader, model, loss_fn, optimizer):
-#     size = len(dataloader.dataset)
-#     for batch, X, y in enumerate(dataloader):
-#         # Compute prediction and loss
-#         pred = model(X)
-#         loss = loss_fn(pred,y)
-#         # Backpropagation
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step()
-
-#         if batch%100 == 0:
-#             loss, current = loss.item(), batch*len(X)
-#             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     batch = 0
     for X, y in dataloader:
         # Compute prediction and loss
-        # pred = model(X)
-        pred = UNet(X)
+        pred = model(X)
+        # pred = UNet(X)
         loss = loss_fn(pred,y)
         # Backpropagation
         optimizer.zero_grad()
