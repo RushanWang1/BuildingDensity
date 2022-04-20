@@ -39,6 +39,8 @@ ENCODER = "resnet18"
 ENCODER_WEIGHTS = 'imagenet'
 ACTIVATION = 'identity'
 DEVICE = 'cuda'
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if use_cuda else "cpu")
 
 #create regression model with pretrained encoder
 model = smp.FPN(
@@ -48,6 +50,7 @@ model = smp.FPN(
     classes = 1,
     activation = ACTIVATION,
 )
+model.to(device)
 
 # Loading training and validation data
 x_train_dir = "data/x_train/Sentinel-2_northkivunorth.tif"
@@ -94,7 +97,8 @@ loss = torch.nn.L1Loss(size_average=None, reduce=None, reduction='none')
 loss_mean = torch.nn.L1Loss(size_average=None, reduce=None, reduction='mean')
 
 def loss_fn(pred, y):
-    err = pred-y
+    loss = torch.nn.L1Loss(size_average=None, reduce=None, reduction='none')
+    err = loss(pred,y)
     loss1 = err[0].mean()
     mask = y[0]>0
     loss2 = err[1][mask].mean()
@@ -110,6 +114,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     batch = 0
     for X, y in dataloader:
+        X,y = X.to(device),y.to(device)
         # Compute prediction and loss
         pred = model(X)
         # pred = UNet(X)
@@ -134,6 +139,7 @@ def test_loop(dataloader, model, loss_fn):
 
     with torch.no_grad():
         for X, y in dataloader:
+            X,y = X.to(device),y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
